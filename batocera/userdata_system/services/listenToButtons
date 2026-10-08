@@ -1,0 +1,37 @@
+#!/bin/bash
+
+# This is a service to place in Batocera's /userdata/system/services/ folder
+
+export DISPLAY=:0
+export CONFIG_FOLDER=/userdata/system/listenToButtons_files
+startSonic() {
+	retroarch -L /usr/lib/libretro/genesisplusgx_libretro.so --config $CONFIG_FOLDER/retroarchButtons.cfg --set-shader /usr/share/batocera/shaders/interpolation/sharp-bilinear-simple.glslp -e 4 --verbose "/userdata/roms/megadrive/Sonic The Hedgehog (USA, Europe).md" &
+}
+export -f startSonic
+consumeButton() {
+	case $1 in
+		Button2) 
+			killall retroarch
+			startSonic
+			;;
+		Button3)
+			killall retroarch
+			retroarch -L /usr/lib/libretro/fceumm_libretro.so --config $CONFIG_FOLDER/retroarchButtons.cfg --set-shader /usr/share/batocera/shaders/interpolation/sharp-bilinear-simple.glslp -e 4 --verbose "/userdata/roms/nes/Super Mario Bros. + Duck Hunt (Europe).nes" &
+			;;
+		Button4) echo dino;;
+	esac
+	return 0
+}
+export -f consumeButton
+
+case $1 in
+	start)
+		sleep 3
+		/usr/bin/emulationstation-standalone --stop-rebooting
+		killall emulationstation
+		xterm -e 'echo "To restore regular batocera: batocera-services disable listenToButtons && reboot"; /bin/bash' &
+		startSonic
+		stty -F /dev/ttyUSB0 9600
+		cat /dev/ttyUSB0 | xargs -n 1 | xargs -I {}  bash -c "consumeButton {}"
+		;;
+esac
